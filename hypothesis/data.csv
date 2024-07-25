@@ -1,0 +1,6 @@
+ID,Gender,YearsProCoding,HrsPerWkCoding,ExpertisePy,ExpertisePBT,ExpertiseVSCode,Realistic,HypothesisSUS,HypothesisTutorialElapsed,Elapsed1,TestCases1,Accuracy1,Confidence1,Elapsed2,TestCases2,Accuracy2,Confidence2
+H01,Female,0,5,2,2,3,4,52.5,8:26,30:00,1,0,1,30:00,1,1,2
+H02,Male,5,20,3,1,3,5,90,23:04,10:23,0,0,4,28:10,1,1,2
+H03,Male,3,40,4,1,5,4,95,9:19,9:55,0,0,5,11:49,1,1,4
+H04,Male,1,20,3,1,3,4,77.5,8:35,11:34,0,0,2,17:10,0,0,3
+H05,Female,1,10,2,1,4,5,97.5,5:52,6:59,0,0,5,10:08,1,1,4
