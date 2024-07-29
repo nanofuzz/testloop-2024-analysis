@@ -14,6 +14,3 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: ./getfonts.sh
-      - run: mkdir pdf
-      - run: mv *.pdf pdf
-
