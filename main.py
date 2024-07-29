@@ -271,8 +271,8 @@ def makeIterationsTable(df: pd.DataFrame, tasks: List[int], treatments: List[str
 
 def main():
     print("")
-    print("* * * NANOFUZZ USER STUDY SECONDARY ANALYSES * * *")
-    print("--------------------------------------------------")
+    print("NANOFUZZ USER STUDY SECONDARY ANALYSES")
+    print("--------------------------------------")
     print("")
 
     nanosteptrandf = pd.read_csv("./nanofuzz/NR7-StepTransitions.csv")
@@ -286,8 +286,8 @@ def main():
 
 
     print("")
-    print("* * * HYPOTHESIS USER STUDY DATA ANALYSES * * *")
-    print("-----------------------------------------------")
+    print("HYPOTHESIS USER STUDY DATA ANALYSES")
+    print("-----------------------------------")
     print("")
 
     hypodf = pd.read_csv("./hypothesis/data.csv")

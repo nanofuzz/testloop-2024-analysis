@@ -21,10 +21,8 @@ Run the script:
 python3 main.py
 ```
 
-This will output the non-marginal contents of Tables X-Z from the article.
-Here is how to use those data to generate the statistics:
+This will output the non-marginal contents of the data tables from the article.
 
-#### Result X 
 
 
 [python]: https://docs.python.org/3/using/index.html
