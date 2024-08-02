@@ -269,11 +269,103 @@ def makeIterationsTable(df: pd.DataFrame, tasks: List[int], treatments: List[str
         )
     return dt
 
+def makeNR5table(df: pd.DataFrame):
+    print("(NR5) Inter-rater Reliability")
+    calcirr(df, "Author 3","Author 2")  #!!! SWAP
+    print("")
+    
+def makeHR3table(df: pd.DataFrame):
+    print("(HR3) Inter-rater Reliability")
+    calcirr(df, "Author 1","Author 3")
+    print("")
+    
+def calcirr(df: pd.DataFrame, rater1: str, rater2: str):
+    irr = {}
+    sessions = {}
+    steps = ["S1","S2","S3","S4","S5","S6","S7"]
+    for step in steps:
+        irr[step] = {
+            "YY": 0, # Count of: YES, YES (agreement)
+            "YN": 0, # Count of: YES, NO  (disagreement)
+            "NY": 0, # Count of: NO , YES (disagreement)
+            "NN": 0, # Count of: NO , NO  (agreement)
+        }
+
+    # First tally the number of agreements and disagreements we have for
+    # the judgements from the first rater
+    for index, row in df.iterrows():
+        # Count the number of records for each session and rater
+        if(row["Session"] not in sessions):
+            sessions[row["Session"]] = {}
+            sessions[row["Session"]][rater1] = 0
+            sessions[row["Session"]][rater2] = 0
+        sessions[row["Session"]][row["Rater"]]+=1
+
+        # Select records only of the first rater (we find rater 2's below)
+        if(row["Rater"]==rater1):
+            # Retrieve the corresponding judgement from the second rater
+            matchrow = df[(df["Rater"]==rater2) & (df["Session"]==row["Session"]) & (df["Treatment"]==row["Treatment"]) & (df["Time (Recording)"]==row["Time (Recording)"])]
+
+            if(len(matchrow)==0): # No record to compare against
+                raise ValueError(f"No '{rater2}' IRR step record found corresponding to: {row}")
+            elif(len(matchrow)>1): # Too many records match
+                raise ValueError(f"Duplicate step records found: {matchrow}")
+            else:
+                for step in steps:
+                    if(row[step]=="X"):
+                        if(matchrow[step].item()=="X"):
+                            irr[step]["YY"]+=1 
+                        else:
+                            irr[step]["YN"]+=1 
+                    else:
+                        if(matchrow[step].item()=="X"):
+                            irr[step]["NY"]+=1 
+                        else:
+                            irr[step]["NN"]+=1 
+
+    # Ensure the number of observations for rated sessions is the same
+    for session in sessions:
+        if(sessions[session][rater1] > 0 and sessions[session][rater1] != sessions[session][rater2]):
+            raise ValueError(f"Inconsistent number of records for session {session}: '{rater1}' has {sessions[session][rater1]} but '{rater2}' has {sessions[session][rater2]}.")
+
+    # Calculate Cohen's Kappa for each step
+    for step in steps:
+        # N = Count of total cases
+        irr[step]["N"] = irr[step]["YY"] + irr[step]["YN"] + irr[step]["NY"] + irr[step]["NN"]
+
+        # O = Observed cases w/agreement
+        irr[step]["O"] = irr[step]["YY"] + irr[step]["NN"]
+
+        # E = Expected agreement
+        irr[step]["E"] = (
+            (#               YY agreement row total * YY agreement column total           / total number of cases
+                (irr[step]["YY"] + irr[step]["YN"]) * (irr[step]["YY"] + irr[step]["NY"]) / irr[step]["N"]
+            ) + (#           NN agreement row total * NN agreement column total           / total number of cases
+                (irr[step]["NY"] + irr[step]["NN"]) * (irr[step]["YN"] + irr[step]["NN"]) / irr[step]["N"]
+            )
+        )
+
+        # K = Cohen's Kappa (O-E)/(N-E)
+        if(irr[step]["N"]==irr[step]["E"]):
+            irr[step]["K"] = 1 # Avoid divide by zero when E=N (e.g., perfect agreement)
+        else:
+            irr[step]["K"] = (irr[step]["O"] - irr[step]["E"]) / (irr[step]["N"] - irr[step]["E"]) 
+
+    # Print the results table
+    dt = pt.PrettyTable()
+    dt.field_names = ["Step","N","O","E","K","","YY","YN","NY","NN"]
+    for step in steps:
+        dt.add_row([step,irr[step]["N"],irr[step]["O"],f"{irr[step]['E']:.3f}",f"{irr[step]['K']:.3f}","",irr[step]["YY"],irr[step]["YN"],irr[step]["NY"],irr[step]["NN"]])
+    print(dt)
+
 def main():
     print("")
     print("NANOFUZZ USER STUDY SECONDARY ANALYSES")
     print("--------------------------------------")
     print("")
+
+    nanostepfixdf = pd.read_csv("./nanofuzz/NR3-StepTranscripts.csv")
+    makeNR5table(nanostepfixdf)
 
     nanosteptrandf = pd.read_csv("./nanofuzz/NR7-StepTransitions.csv")
     makeNR7table(nanosteptrandf)
@@ -284,7 +376,6 @@ def main():
     nanostepdf = pd.read_csv("./nanofuzz/NR4-StepTranscripts.csv")
     makeNR9table(nanostepdf)
 
-
     print("")
     print("HYPOTHESIS USER STUDY DATA ANALYSES")
     print("-----------------------------------")
@@ -293,14 +384,15 @@ def main():
     hypodf = pd.read_csv("./hypothesis/data.csv")
     makeHD3HD6table(hypodf)
 
+    hypostepfixdf = pd.read_csv("./hypothesis/HR1-StepTranscripts.csv")
+    makeHR3table(hypostepfixdf)
+
     hyposteptrandf = pd.read_csv("./hypothesis/HR4-StepTransitions.csv")
     makeHR4table(hyposteptrandf)
-
     makeHR5table(hypodf)
 
     hypostepdf = pd.read_csv("./hypothesis/HR2-StepTranscripts.csv")
     makeHR6table(hypostepdf)
-
 
 if __name__ == "__main__":
     main()
