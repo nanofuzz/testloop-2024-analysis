@@ -366,7 +366,7 @@ def main():
     print(r8Table)
 
     print("")
-    print("Task Data for Hypothesis Study (mentioned in discussion)")
+    print("Task Data for Hypothesis User Study (mentioned in discussion)")
     print(makeHD3HD6table(pd.read_csv("./hypothesis/data.csv")))
 
 if __name__ == "__main__":
