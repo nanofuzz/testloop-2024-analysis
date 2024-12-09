@@ -32,43 +32,24 @@ def parse_time(t: str):
     else:
         raise ValueError(f"Accepted time formats: m:s or h:m:s (value was:'{t}")
     
-def makeNR7table(df: pd.DataFrame):
-    print("(NR7) Abstract Step Transitions: NaNofuzz")
-    print(makeStepTransitionTable(df[df["Session"].str.slice(-1)=="A"]))
-    print("")
-
-    print("(NR7) Abstract Step Transitions: Jest")
-    print(makeStepTransitionTable(df[df["Session"].str.slice(-1)=="J"]))
-    print("")
-
-    print("(NR7) Abstract Step Transitions: Jest + NaNofuzz")
-    print(makeStepTransitionTable(df))
-    print("")
-
 def makeHD3HD6table(df: pd.DataFrame):
-    print("(HD3-HD6) Raw Task Data")
+    dt = pt.PrettyTable()
+    dt.field_names = ["Task", "Participant", "Bugs Elicited", "Bug Desc. Accuracy", "Confidence", "Time (mm:ss)"]
     for task in hypotasks:
-        dt = pt.PrettyTable()
-        dt.field_names = ["Task", "Participant", "(HD3) Bugs Elicited", "(HD4) Bug Desc. Accuracy", "(HD5) Confidence)", "(HD6) Time (mm:ss)"]
         for index, row in df.iterrows():
-            dt.add_row([task,row["ID"],row[f"TestCases{task}"], row[f"Accuracy{task}"],row[f"Confidence{task}"],row[f"Elapsed{task}"]])
-        print(dt)
-    print("")
+            dt.add_row([task,row["ID"],row[f"TestCases{task}"], row[f"Accuracy{task}"],row[f"Confidence{task}"],row[f"Elapsed{task}"]],divider=(index == df.index[-1]))
+    return dt
 
-def makeHR4table(df: pd.DataFrame):
-    print("(HR4) Abstract Step Transitions")
-    print(makeStepTransitionTable(df))
-    print("")
-
-def makeStepTransitionTable(df: pd.DataFrame):
+def makeStepTransitionTable(dt: pt.PrettyTable | None, treatment: str, df: pd.DataFrame):
     # Setup the prettytable
     steps = ["S2","S3","S4","S5","S6","S7"]
-    dt = pt.PrettyTable()
-    dt.field_names = ["Current Step \ Next Step","S2","S3","S4","S5","S6","S7","Σ"]
+    if(dt==None):
+        dt = pt.PrettyTable()
+        dt.field_names = ["Treatment","Current \ Next Step","S2","S3","S4","S5","S6","S7","Σ"]
 
     # Create the thisStep rows
     for thisStep in steps:
-        rowData = [thisStep]
+        rowData = [treatment,thisStep]
         rowSum = df["ThisStep"][(df["ThisStep"]==thisStep)].count()
 
         # Create the nextStep columns
@@ -77,30 +58,20 @@ def makeStepTransitionTable(df: pd.DataFrame):
             rowData.append("--" if value==0 else f"{value} ({value/rowSum:.2%})")
 
         rowData.append(f"{rowSum} (100%)") # Sum column
-        dt.add_row(rowData,divider=(thisStep=="S7"))
+        dt.add_row(rowData,divider=(thisStep==steps[-1]))
 
     # Summary row
     rowSum = df["NextStep"].count()
-    rowData = ["Σ"]
+    rowData = ["","Σ"]
     for nextStep in steps:
         value = df["NextStep"][(df["NextStep"]==nextStep)].count()
         rowData.append("--" if value==0 else f"{value}")
     rowData.append(f"{rowSum}") # Sum column
-    dt.add_row(rowData)
+    dt.add_row(rowData,divider=True)
 
     return dt
 
-def makeNR9table(df: pd.DataFrame):
-    print("(NR9) Step Summary by treatment, session (times in hours:minutes:seconds)")
-    print(makeStepSummaryTable(df,nanotreatments,["S2","S3","S4","S5","S6","S7"]))
-    print("")
-
-def makeHR6table(df: pd.DataFrame):
-    print("(HR6) Step Summary by session (times in hours:minutes:seconds)")
-    print(makeStepSummaryTable(df,hypotreatments,["S2","S3","S4","S5","S6","S7"]))
-    print("")
-
-def makeStepSummaryTable(df: pd.DataFrame, treatments: List[str], steps: List[str]):
+def makeStepSummaryTable(dt: pt.PrettyTable | None, df: pd.DataFrame, treatments: List[str], steps: List[str]):
     rows = [] # PrettyTable output rows
     data = {} # Accumulated step timings
 
@@ -169,24 +140,16 @@ def makeStepSummaryTable(df: pd.DataFrame, treatments: List[str], steps: List[st
             })
 
     # Create and fill the prettytable
-    dt = pt.PrettyTable()
-    dt.field_names = ["Treatment","Session"] + steps
+    if(dt==None):
+        dt = pt.PrettyTable()
+        dt.field_names = ["Treatment","Session"] + steps
+
     for row in rows:
         dt.add_row(row=row["data"],divider=row["divider"])
 
     return dt
 
-def makeHR5table(df: pd.DataFrame):
-    print("(HR5) Loop Iterations by session")
-    print(makeIterationsTable(df,hypotasks,hypotreatments))
-    print("")
-
-def makeNR8table(df: pd.DataFrame):
-    print("(NR8) Loop Iterations by treatment, session")
-    print(makeIterationsTable(df,nanotasks,nanotreatments))
-    print("")
-
-def makeIterationsTable(df: pd.DataFrame, tasks: List[int], treatments: List[str]):
+def makeIterationsTable(dt: pt.PrettyTable | None, df: pd.DataFrame, tasks: List[int], treatments: List[str]):
     # To add a divider above the "mean" lines, we need to add a divider to the 
     # preceding row. To do this, we buffer the table rows here so that we can
     # change the divider flag if needed.
@@ -217,8 +180,9 @@ def makeIterationsTable(df: pd.DataFrame, tasks: List[int], treatments: List[str
     hasIntervention:bool = len(treatments)-1
 
     # Create and define the prettytable
-    dt = pt.PrettyTable()
-    dt.field_names = ["Treatment","Session","Session Length (seconds)","Loop Iterations","Mean Seconds per Iteration"]
+    if(dt==None):
+        dt = pt.PrettyTable()
+        dt.field_names = ["Treatment","Session","Session Length (seconds)","Loop Iterations","Mean Seconds per Iteration"]
 
     # Initialize the summary data for each treatment
     sessions = 0
@@ -269,17 +233,7 @@ def makeIterationsTable(df: pd.DataFrame, tasks: List[int], treatments: List[str
         )
     return dt
 
-def makeNR5table(df: pd.DataFrame):
-    print("(NR5) Inter-rater Reliability")
-    calcirr(df, "Author 3","Author 2")  #!!! SWAP
-    print("")
-    
-def makeHR3table(df: pd.DataFrame):
-    print("(HR3) Inter-rater Reliability")
-    calcirr(df, "Author 1","Author 3")
-    print("")
-    
-def calcirr(df: pd.DataFrame, rater1: str, rater2: str):
+def calcirr(dt: pt.PrettyTable | None, dataset: str, df: pd.DataFrame, rater1: str, rater2: str):
     irr = {}
     sessions = {}
     steps = ["S1","S2","S3","S4","S5","S6","S7"]
@@ -351,48 +305,69 @@ def calcirr(df: pd.DataFrame, rater1: str, rater2: str):
         else:
             irr[step]["K"] = (irr[step]["O"] - irr[step]["E"]) / (irr[step]["N"] - irr[step]["E"]) 
 
-    # Print the results table
-    dt = pt.PrettyTable()
-    dt.field_names = ["Step","N","O","E","K","","YY","YN","NY","NN"]
+    # Build the results table
+    breakRow = False
+    if(dt==None):
+        dt = pt.PrettyTable()
+        dt.field_names = ["Dataset","Step","N","O","E","K","","YY","YN","NY","NN"]
+
     for step in steps:
-        dt.add_row([step,irr[step]["N"],irr[step]["O"],f"{irr[step]['E']:.3f}",f"{irr[step]['K']:.3f}","",irr[step]["YY"],irr[step]["YN"],irr[step]["NY"],irr[step]["NN"]])
-    print(dt)
+        dt.add_row([dataset,step,irr[step]["N"],irr[step]["O"],f"{irr[step]['E']:.3f}",f"{irr[step]['K']:.3f}","",irr[step]["YY"],irr[step]["YN"],irr[step]["NY"],irr[step]["NN"]],divider=(step==steps[-1]))
+
+    return dt
 
 def main():
     print("")
-    print("NANOFUZZ USER STUDY SECONDARY ANALYSES")
-    print("--------------------------------------")
-    print("")
-
-    nanostepfixdf = pd.read_csv("./nanofuzz/NR3-StepTranscripts.csv")
-    makeNR5table(nanostepfixdf)
-
-    nanosteptrandf = pd.read_csv("./nanofuzz/NR7-StepTransitions.csv")
-    makeNR7table(nanosteptrandf)
-
-    nanodf = pd.read_csv("./nanofuzz/data.csv")
-    makeNR8table(nanodf)
-
-    nanostepdf = pd.read_csv("./nanofuzz/NR4-StepTranscripts.csv")
-    makeNR9table(nanostepdf)
+    print("EXTRACTING THE ABSTRACT STEPS (§5)")
+    print("----------------------------------")
+    print("(R1) Coding Guide. See paper")
 
     print("")
-    print("HYPOTHESIS USER STUDY DATA ANALYSES")
-    print("-----------------------------------")
+    print("(R2) Abstract Steps. See paper")
+
     print("")
+    print("APPLYING THE ABSTRACT STEPS (§6)")
+    print("--------------------------------")
 
-    hypodf = pd.read_csv("./hypothesis/data.csv")
-    makeHD3HD6table(hypodf)
+    print("(R3) Step transcripts (fixed intervals). See:")
+    print("     ./nanofuzz/R3-StepTranscripts.csv")
+    print("     ./hypothesis/R3-StepTranscripts.csv")
 
-    hypostepfixdf = pd.read_csv("./hypothesis/HR1-StepTranscripts.csv")
-    makeHR3table(hypostepfixdf)
+    print("")
+    print("(R4) Step transcripts (variable intervals). See:")
+    print("     ./nanofuzz/R4-StepTranscripts.csv")
+    print("     ./hypothesis/R4-StepTranscripts.csv")
 
-    hyposteptrandf = pd.read_csv("./hypothesis/HR4-StepTransitions.csv")
-    makeHR4table(hyposteptrandf)
-    makeHR5table(hypodf)
+    print("")
+    print("(R5) Inter-rater Reliability of Coding, by dataset and step")
+    r5Table = calcirr(None,"Jest, NaNo",pd.read_csv("./nanofuzz/R3-StepTranscripts.csv"), "Author 3","Author 2")
+    r5Table = calcirr(r5Table,"Hypothesis",pd.read_csv("./hypothesis/R3-StepTranscripts.csv"), "Author 1","Author 3")
+    print(r5Table)
 
-    hypostepdf = pd.read_csv("./hypothesis/HR2-StepTranscripts.csv")
-    makeHR6table(hypostepdf)
+    print("")
+    print("(R6) Abstract Step Transitions by treatment, current, next step")
+    df = pd.read_csv("./nanofuzz/R6-StepTransitions.csv")
+    r6Table = makeStepTransitionTable(None,"Jest",df[df["Session"].str.slice(-1)=="J"])
+    r6Table = makeStepTransitionTable(r6Table,"NaNofuzz",df[df["Session"].str.slice(-1)=="A"])
+    df = pd.read_csv("./hypothesis/R6-StepTransitions.csv")
+    r6Table = makeStepTransitionTable(r6Table,"Hypothesis",df)
+    print(r6Table)
+
+    print("")
+    print("(R7) Loop Iterations by treatment, session")
+    r7Table = makeIterationsTable(None,pd.read_csv("./nanofuzz/data.csv"),nanotasks,nanotreatments)
+    r7Table = makeIterationsTable(r7Table,pd.read_csv("./hypothesis/data.csv"),hypotasks,hypotreatments)
+    print(r7Table)
+
+    print("")
+    print("(R8) Step Summary by treatment, session, step (times in hours:minutes:seconds)")
+    r8Table=makeStepSummaryTable(None,pd.read_csv("./nanofuzz/R4-StepTranscripts.csv"),nanotreatments,["S2","S3","S4","S5","S6","S7"])
+    r8Table=makeStepSummaryTable(r8Table,pd.read_csv("./hypothesis/R4-StepTranscripts.csv"),hypotreatments,["S2","S3","S4","S5","S6","S7"])
+    print(r8Table)
+
+    print("")
+    print("Task Data for Hypothesis Study (mentioned in discussion)")
+    print(makeHD3HD6table(pd.read_csv("./hypothesis/data.csv")))
 
 if __name__ == "__main__":
     main()
