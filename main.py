@@ -318,7 +318,7 @@ def calcirr(dt: pt.PrettyTable | None, dataset: str, df: pd.DataFrame, rater1: s
 
 def main():
     print("")
-    print("EXTRACTING THE ABSTRACT STEPS (§5)")
+    print("EXTRACTING THE ABSTRACT STEPS (§4)")
     print("----------------------------------")
     print("(R1) Coding Guide. See paper")
 
@@ -326,7 +326,7 @@ def main():
     print("(R2) Abstract Steps. See paper")
 
     print("")
-    print("APPLYING THE ABSTRACT STEPS (§6)")
+    print("APPLYING THE ABSTRACT STEPS (§5)")
     print("--------------------------------")
 
     print("(R3) Step transcripts (fixed intervals). See:")
